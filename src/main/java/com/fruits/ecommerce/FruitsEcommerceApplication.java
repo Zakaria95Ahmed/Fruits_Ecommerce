@@ -9,7 +9,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @RequiredArgsConstructor
 public class FruitsEcommerceApplication {
 
-    //That is the main method function to start up the app
     public static void main(String[] args) {
         SpringApplication.run(FruitsEcommerceApplication.class, args);
     }

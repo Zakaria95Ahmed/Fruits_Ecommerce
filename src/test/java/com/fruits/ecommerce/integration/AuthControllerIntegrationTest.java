@@ -2,12 +2,12 @@ package com.fruits.ecommerce.integration;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fruits.ecommerce.Models.DTOs.LoginRequestDTO;
-import com.fruits.ecommerce.Models.DTOs.UserDTO;
-import com.fruits.ecommerce.Models.Entities.Role;
-import com.fruits.ecommerce.Models.Enum.RoleType;
-import com.fruits.ecommerce.Repository.RoleRepository;
-import com.fruits.ecommerce.Repository.UserRepository;
+import com.fruits.ecommerce.models.dtos.LoginRequestDTO;
+import com.fruits.ecommerce.models.dtos.UserDTO;
+import com.fruits.ecommerce.models.entities.Role;
+import com.fruits.ecommerce.models.enums.RoleType;
+import com.fruits.ecommerce.repository.RoleRepository;
+import com.fruits.ecommerce.repository.UserRepository;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -15,9 +15,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.*;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestExecutionListeners;
-import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
-import org.springframework.test.context.support.DirtiesContextTestExecutionListener;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -26,13 +23,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-//@SpringBootTest
-//@AutoConfigureMockMvc
-//@TestExecutionListeners(
-//        listeners = {DependencyInjectionTestExecutionListener.class, DirtiesContextTestExecutionListener.class},
-//        mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS
-//)
-//@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 
 @SpringBootTest
 @AutoConfigureMockMvc

@@ -1,14 +1,25 @@
 openapi: 3.0.0
+
 info:
   title: Fruits E-commerce API
   description: API for managing a fruits e-commerce platform Online
   version: 1.0.0
+
 servers:
   - url: http://localhost:9090/api
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: User authentication and account management
+  - name: Products
+    description: Product management
+
 paths:
   /auth/register:
     post:
       summary: Register a new user
+      operationId: registerUser
       tags:
         - Authentication
       requestBody:
@@ -28,10 +39,13 @@ paths:
           description: Bad request (Username exists, Email exists, Invalid role, or Invalid user data)
         '500':
           description: Internal server error (Failed to send email)
+        default:
+          $ref: '#/components/responses/UnexpectedError'
 
   /auth/login:
     post:
       summary: Login user
+      operationId: loginUser
       tags:
         - Authentication
       requestBody:
@@ -49,10 +63,13 @@ paths:
                 $ref: '#/components/schemas/AuthResponseDTO'
         '401':
           description: Unauthorized (User not found, Account locked, or Bad credentials)
+        default:
+          $ref: '#/components/responses/UnexpectedError'
 
   /auth/lock-user:
     post:
       summary: Lock a user account
+      operationId: lockUserAccount
       tags:
         - Authentication
       security:
@@ -73,10 +90,13 @@ paths:
           description: Forbidden (Insufficient permissions)
         '500':
           description: Internal server error
+        default:
+          $ref: '#/components/responses/UnexpectedError'
 
   /auth/unlock-user:
     post:
       summary: Unlock a user account
+      operationId: unlockUserAccount
       tags:
         - Authentication
       security:
@@ -97,6 +117,69 @@ paths:
           description: Forbidden (Insufficient permissions)
         '500':
           description: Internal server error
+        default:
+          $ref: '#/components/responses/UnexpectedError'
+
+  /api/products/admin:
+    post:
+      summary: Create a new product
+      operationId: createProduct
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductDTO'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDTO'
+        '400':
+          description: Bad Request
+
+  /api/products:
+    get:
+      summary: Get list of products
+      tags:
+        - Products
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: Page number
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+          description: Number of items per page
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductDTO'
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  number:
+                    type: integer
+        '400':
+          description: Bad Request
 
 components:
   schemas:
@@ -111,10 +194,17 @@ components:
           example: "john_doe"
         email:
           type: string
+          format: email
           example: "john.doe@example.com"
         role:
           type: string
+          enum: [CLIENT, ADMIN]
           example: "CLIENT"
+      required:
+        - username
+        - email
+        - role
+
     LoginRequestDTO:
       type: object
       properties:
@@ -123,7 +213,12 @@ components:
           example: "john_doe"
         password:
           type: string
+          format: password
           example: "password123"
+      required:
+        - username
+        - password
+
     AuthResponseDTO:
       type: object
       properties:
@@ -134,6 +229,52 @@ components:
           type: string
           format: date-time
           example: "2024-09-23T23:59:59Z"
+      required:
+        - token
+        - expiresAt
+
+    ProductDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        unit:
+          type: string
+        price:
+          type: number
+          format: double
+        description:
+          type: string
+        base64ImageData:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+      required:
+        - code
+        - message
+
+  responses:
+    UnexpectedError:
+      description: Unexpected error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
 
   securitySchemes:
     bearerAuth:

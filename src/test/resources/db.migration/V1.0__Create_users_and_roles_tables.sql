@@ -5,7 +5,7 @@ CREATE TABLE roles (
 );
 
 -- Insert default roles
-INSERT INTO roles (name) VALUES ('ADMIN'), ('CLIENT') ;
+INSERT INTO roles (name) VALUES ('ADMIN'), ('CLIENT');
 
 -- Create users table
 CREATE TABLE users (
@@ -13,11 +13,11 @@ CREATE TABLE users (
                        first_name VARCHAR(25) NOT NULL,
                        last_name VARCHAR(25) NOT NULL,
                        user_name VARCHAR(25) NOT NULL UNIQUE,
-                       email VARCHAR(35) NOT NULL UNIQUE,
+                       email VARCHAR(25) NOT NULL UNIQUE,
                        password VARCHAR(255) NOT NULL,
-                       address VARCHAR(35),
+                       address VARCHAR(25),
                        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Note: H2 doesn't support ON UPDATE CURRENT_TIMESTAMP
                        last_login TIMESTAMP,
                        is_active BOOLEAN NOT NULL DEFAULT TRUE,
                        is_not_locked BOOLEAN NOT NULL DEFAULT TRUE
