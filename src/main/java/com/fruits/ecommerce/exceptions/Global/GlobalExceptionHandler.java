@@ -1,8 +1,10 @@
 package com.fruits.ecommerce.exceptions.Global;
 
 
-import com.fruits.ecommerce.exceptions.HttpResponse;
 import com.fruits.ecommerce.exceptions.ExceptionsDomain.*;
+import com.fruits.ecommerce.exceptions.HttpResponse;
+import com.fruits.ecommerce.exceptions.products.ImageNotFoundException;
+import com.fruits.ecommerce.exceptions.products.InvalidImageException;
 import com.fruits.ecommerce.exceptions.products.InvalidProductDataException;
 import com.fruits.ecommerce.exceptions.products.ProductNotFoundException;
 import com.fruits.ecommerce.models.enums.RoleType;
@@ -13,7 +15,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.Arrays;
@@ -84,7 +85,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<HttpResponse> handleAllExceptions(Exception ex, WebRequest request) {
+    public ResponseEntity<HttpResponse> handleAllExceptions(Exception ex) {
         log.error("Unhandled exception occurred", ex);
         HttpResponse httpResponse = new HttpResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
@@ -142,4 +143,13 @@ public class GlobalExceptionHandler {
         return createHttpResponse(HttpStatus.NOT_FOUND, "Product not found", ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidImageException.class)
+    public ResponseEntity<HttpResponse> handleInvalidImageException(InvalidImageException ex) {
+        return createHttpResponse(HttpStatus.BAD_REQUEST, "Invalid Image", ex.getMessage());
+    }
+
+    @ExceptionHandler(ImageNotFoundException.class)
+    public ResponseEntity<HttpResponse> handleImageNotFoundException(ImageNotFoundException ex) {
+        return createHttpResponse(HttpStatus.NOT_FOUND, "Image not found", ex.getMessage());
+    }
 }

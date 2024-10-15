@@ -3,9 +3,10 @@ package com.fruits.ecommerce.configuration.WebConfig;
 import com.fruits.ecommerce.exceptions.ExceptionsDomain.InvalidRoleException;
 import com.fruits.ecommerce.models.enums.RoleType;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.core.convert.converter.Converter;
+
 import java.util.Arrays;
 import java.util.stream.Collectors;
 

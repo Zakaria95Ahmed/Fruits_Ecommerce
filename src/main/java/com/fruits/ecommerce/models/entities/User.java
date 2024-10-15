@@ -28,7 +28,6 @@ public class User {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Long id;
 
-
     @NotNull
     @Column(name = "first_name", nullable = false)
     private String firstName;
@@ -40,7 +39,6 @@ public class User {
     @NotNull
     @Column(name = "user_name", unique = true, nullable = false)
     private String username;
-
 
     @NotNull
     @Email(message = "Invalid email format")
@@ -84,7 +82,6 @@ public class User {
         this.isNotLocked = true;
     }
 
-
     public void updateLastLogin() {
         this.lastLogin = LocalDateTime.now();
     }
@@ -93,5 +90,4 @@ public class User {
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
-
 }

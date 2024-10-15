@@ -4,7 +4,6 @@ package com.fruits.ecommerce.controller;
 import com.fruits.ecommerce.models.dtos.AuthResponseDTO;
 import com.fruits.ecommerce.models.dtos.LoginRequestDTO;
 import com.fruits.ecommerce.models.dtos.UserDTO;
-
 import com.fruits.ecommerce.models.enums.RoleType;
 import com.fruits.ecommerce.services.Interfaces.IUserService;
 import jakarta.validation.Valid;
@@ -16,15 +15,16 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.management.relation.RoleNotFoundException;
+import java.util.List;
+
 @Slf4j
 @Validated
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
-
     private final IUserService authService;
-
     /**
      * Register a new user.
      *
@@ -82,6 +82,19 @@ public class AuthController {
     }
 
 
+    @GetMapping("/customers")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserDTO>> getAllCustomers() throws RoleNotFoundException {
+        List<UserDTO> customers = authService.getAllCustomers();
+        return ResponseEntity.ok(customers);
+    }
+
+    @GetMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        List<UserDTO> users = authService.getAllUsers();
+        return ResponseEntity.ok(users);
+    }
 
 
 

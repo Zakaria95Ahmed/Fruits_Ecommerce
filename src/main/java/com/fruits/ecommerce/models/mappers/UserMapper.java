@@ -4,7 +4,11 @@ import com.fruits.ecommerce.models.dtos.UserDTO;
 import com.fruits.ecommerce.models.entities.Role;
 import com.fruits.ecommerce.models.entities.User;
 import com.fruits.ecommerce.models.enums.RoleType;
-import org.mapstruct.*;
+import org.mapstruct.InheritInverseConfiguration;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -15,7 +19,6 @@ import java.util.stream.Collectors;
  */
 @Mapper(componentModel = "spring")
 public interface UserMapper {
-
     /**
      // Converts a User entity to a UserDTO.
      // The roles field is mapped using a custom method specified by qualifiedByName.
@@ -25,8 +28,6 @@ public interface UserMapper {
     @Mapping(target = "roles", source = "roles", qualifiedByName = "rolesToStringSet")
     UserDTO toDTO(User user);
 
-
-
     /**
      // Converts a UserDTO to a User entity.
      // The roles field is ignored in this mapping as it typically requires more complex logic.
@@ -35,6 +36,7 @@ public interface UserMapper {
      */
     @Mapping(target = "roles", ignore = true)
     @Mapping(target = "password", source = "password")
+    @InheritInverseConfiguration
     User toEntity(UserDTO userDTO);
 
     /**

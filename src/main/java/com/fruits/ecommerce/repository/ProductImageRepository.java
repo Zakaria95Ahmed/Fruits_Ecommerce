@@ -6,5 +6,4 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProductImageRepository extends JpaRepository<ProductImage, Long> {
-    // ممكن نضيف ميثودات إضافية لو احتجنا
 }

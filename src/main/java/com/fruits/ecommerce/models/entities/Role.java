@@ -2,7 +2,8 @@ package com.fruits.ecommerce.models.entities;
 
 import com.fruits.ecommerce.models.enums.RoleType;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -35,5 +36,12 @@ public class Role {
 
     public static Role of(RoleType name) {
         return new Role(name);
+    }
+
+    @PrePersist
+    public void prePersist() {
+        if (!this.name.name().startsWith("ROLE_")) {
+            this.name = RoleType.valueOf("ROLE_" + this.name.name());
+        }
     }
 }

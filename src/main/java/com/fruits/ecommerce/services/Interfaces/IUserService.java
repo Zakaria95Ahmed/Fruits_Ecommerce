@@ -6,6 +6,10 @@ import com.fruits.ecommerce.models.dtos.LoginRequestDTO;
 import com.fruits.ecommerce.models.dtos.UserDTO;
 import com.fruits.ecommerce.models.enums.RoleType;
 import org.springframework.security.core.AuthenticationException;
+
+import javax.management.relation.RoleNotFoundException;
+import java.util.List;
+
 public interface IUserService {
 
     /**
@@ -18,7 +22,6 @@ public interface IUserService {
      * //@throws InvalidRoleException If the specified role is invalid.
      * //@throws InvalidUserDataException If the user data is invalid or incomplete.
      */
-
     UserDTO register(UserDTO userDTO);
 
     /**
@@ -32,12 +35,12 @@ public interface IUserService {
      * @throws BadCredentialsException If the provided credentials are incorrect.
      */
     AuthResponseDTO login(LoginRequestDTO loginRequest);
-
     void lockUser(String identifier);
-
     void unlockUser(String identifier);
-    // إضافة دور لمستخدم
+    // adding Role To User-Account
     void addRoleToUser(Long userId, RoleType roleType) throws UserNotFoundException, InvalidRoleException;
     void removeRoleFromUser(Long userId, RoleType roleType) throws UserNotFoundException, InvalidRoleException;
+    List<UserDTO> getAllCustomers() throws RoleNotFoundException;
+    List<UserDTO> getAllUsers();
 
 }

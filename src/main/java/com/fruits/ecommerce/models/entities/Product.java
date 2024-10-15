@@ -20,7 +20,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Product {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,7 +27,6 @@ public class Product {
     @NotBlank(message = "Product name is required")
     @Column(nullable = false)
     private String name;
-
     private String unit;
 
     @NotNull(message = "Price is required")
@@ -36,10 +34,6 @@ public class Product {
     private BigDecimal price;
 
     private String description;
-
-
-    // Option 2: Store image URL or file name
-    //    private String imageUrl;
 
     // Optionally, add fields for createdAt, updatedAt, etc.
     @Column(name = "created_at", updatable = false)
@@ -50,18 +44,25 @@ public class Product {
 
     // Add the relation between images and products
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProductImage> images = new ArrayList<>();
+    private List<ProductImage> imageUrls  = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = this.createdAt;
     }
-
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
 
-
 }
+
+
+
+
+
+
+
+
+

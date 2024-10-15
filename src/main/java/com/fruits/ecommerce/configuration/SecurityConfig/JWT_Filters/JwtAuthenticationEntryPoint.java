@@ -1,22 +1,20 @@
 package com.fruits.ecommerce.configuration.SecurityConfig.JWT_Filters;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import static org.springframework.http.HttpStatus.FORBIDDEN;
-import static org.springframework.util.MimeTypeUtils.*;
-
 import com.fruits.ecommerce.configuration.SecurityConfig.SecurityCore.SecurityProperties;
 import com.fruits.ecommerce.exceptions.HttpResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.stereotype.Component;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.io.OutputStream;
+
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 
 @Component

@@ -20,16 +20,20 @@ public class ProductImage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // مسار الصورة على نظام الملفات
+    // Image URL accessible by client
     @Column(nullable = false)
     private String imageUrl;
 
-    // العلاقة مع المنتج
+    // File path on server
+    @Column(name = "file_path", nullable = false)
+    private String filePath;
+
+    // Relation with product
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
+    @JoinColumn(name = "product_id", nullable = true)
     private Product product;
 
-    // تاريخ الإنشاء
+    // Creation date
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -37,4 +41,5 @@ public class ProductImage {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
+
 }

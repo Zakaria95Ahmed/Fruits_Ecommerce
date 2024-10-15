@@ -26,7 +26,6 @@ public class HttpResponse {
         this.timeStamp = LocalDateTime.now(ZoneOffset.UTC).toString();
     }
 
-
     public HttpResponse(int httpStatusCode, HttpStatus httpStatus, String reason, String message) {
         this();
         this.statusCode = httpStatusCode;
@@ -41,7 +40,6 @@ public class HttpResponse {
     public static class ValidationError {
         private String field;
         private String message;
-
         public ValidationError(String field, String message) {
             this.field = field;
             this.message = message;

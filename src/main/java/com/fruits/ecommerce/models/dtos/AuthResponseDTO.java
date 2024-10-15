@@ -10,7 +10,5 @@ import lombok.Setter;
 public class AuthResponseDTO {
     private String token;
     private UserDTO user;
-    public AuthResponseDTO() {
-
-    }
+    public AuthResponseDTO() {}
 }

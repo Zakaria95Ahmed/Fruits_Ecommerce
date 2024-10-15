@@ -1,7 +1,5 @@
 package com.fruits.ecommerce.services.implementations;
 
-import com.fruits.ecommerce.configuration.SecurityConfig.ExtraServices.EmailService;
-import com.fruits.ecommerce.configuration.SecurityConfig.ExtraServices.LoginAttemptService;
 import com.fruits.ecommerce.configuration.SecurityConfig.JWT_Filters.JWTTokenProvider;
 import com.fruits.ecommerce.configuration.SecurityConfig.SecurityCore.UserData;
 import com.fruits.ecommerce.exceptions.ExceptionsDomain.*;
@@ -15,12 +13,13 @@ import com.fruits.ecommerce.models.mappers.UserMapper;
 import com.fruits.ecommerce.repository.RoleRepository;
 import com.fruits.ecommerce.repository.UserRepository;
 import com.fruits.ecommerce.services.Interfaces.IUserService;
+import com.fruits.ecommerce.services.Utils.EmailService;
+import com.fruits.ecommerce.services.Utils.LoginAttemptService;
 import jakarta.mail.MessagingException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.validator.routines.EmailValidator;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,20 +28,20 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
-
+import javax.management.relation.RoleNotFoundException;
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-
-import org.springframework.util.StringUtils;
+import java.util.stream.Collectors;
 
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthImplementation implements IUserService {
-
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
@@ -278,11 +277,6 @@ public class AuthImplementation implements IUserService {
         }
     }
 
-    // Helper method to validate the email address
-//    private boolean isValidEmail(String email) {
-//        return EmailValidator.getInstance().isValid(email);
-//    }
-
     private boolean isValidEmail(String email) {
         // Regular expression to validate email format
         String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
@@ -309,8 +303,8 @@ public class AuthImplementation implements IUserService {
                 }
             }
         } else {
-            //Assign the default Role
-            Role defaultRole = roleRepository.findByName(RoleType.CLIENT)
+            //Assign the default Role AS USER
+            Role defaultRole = roleRepository.findByName(RoleType.USER)
                     .orElseThrow(() -> new InvalidRoleException("Default Role not found."));
             roles.add(defaultRole);
         }
@@ -392,5 +386,27 @@ public class AuthImplementation implements IUserService {
              throw new RuntimeException("User does not have role: " + roleType);
         }
     }
+
+    @Override
+    public List<UserDTO> getAllCustomers() throws RoleNotFoundException {
+        // Getting the Role from DB
+        Role role = roleRepository.findByName(RoleType.CUSTOMER)
+                .orElseThrow(() -> new RoleNotFoundException("Role not found: CUSTOMER"));
+        return userRepository.findAllByRoles(role)
+                .stream()
+                .map(userMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<UserDTO> getAllUsers() {
+        return userRepository.findAll()
+                .stream()
+                .map(userMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+
+
 
 }
