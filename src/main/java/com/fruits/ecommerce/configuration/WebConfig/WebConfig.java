@@ -25,7 +25,8 @@ public class WebConfig implements WebMvcConfigurer {
                 return RoleType.valueOf(source.toUpperCase());
             } catch (IllegalArgumentException e) {
                 throw new InvalidRoleException("Invalid role: " + source + ". Available roles are: "
-                        + Arrays.stream(RoleType.values()).map(Enum::name).collect(Collectors.joining(", ")));
+                        + Arrays.stream(RoleType.values()).map(Enum::name)
+                        .collect(Collectors.joining(", ")));
             }
         }
     }

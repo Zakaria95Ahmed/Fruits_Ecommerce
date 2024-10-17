@@ -30,7 +30,7 @@ public class ProductController {
     private final IProductService productService;
     private final ImageService imageService;
 
-    // Create a new product (admin access only)
+    // Create a new product (ADMIN Access only)
     @PostMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductDTO> createProduct(@Valid @RequestBody ProductDTO productDTO) {
@@ -38,7 +38,7 @@ public class ProductController {
         return new ResponseEntity<>(createdProduct, HttpStatus.CREATED);
     }
 
-    // Get a list of products with pagination (available to everyone)
+    // Get a list of products with pagination (Available to Everyone)
     @GetMapping
     public ResponseEntity<Page<ProductDTO>> getProducts(
             @RequestParam(defaultValue = "0") int page,
@@ -53,7 +53,7 @@ public class ProductController {
         return ResponseEntity.ok(productDTO);
     }
 
-    // Upload independent images (for administrators only)
+    // Upload independent images (ADMIN Access only)
     @PostMapping("/admin/images/upload")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ProductImageDTO>> uploadImages(
@@ -83,7 +83,7 @@ public class ProductController {
         }
     }
 
-    // Link existing images to a specific product (for administrators only)
+    // Link existing images to a specific product (ADMIN Access only)
     @PutMapping("/admin/{productId}/images/link")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductDTO> linkImagesToProduct(
@@ -94,7 +94,7 @@ public class ProductController {
     }
 
 
-    // Upload new images and link them to a product (for ADMIN-ACCESS only)
+    // Upload new images and link them to a product (ADMIN Access only)
     @PostMapping("/admin/{productId}/images")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ProductImageDTO>> addImagesToProduct(
@@ -104,7 +104,7 @@ public class ProductController {
         return ResponseEntity.ok(imageDTOs);
     }
 
-    // Delete an image(for ADMIN-ACCESS only)
+    // Delete an image(ADMIN Access only)
     @DeleteMapping("/admin/images/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteImage(@PathVariable Long id) throws IOException {
@@ -112,4 +112,23 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
+    // Update a product (ADMIN Access only)
+    @PutMapping("/admin/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ProductDTO> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductDTO productDTO) {
+            ProductDTO updatedProduct = productService.updateProduct(id, productDTO);
+            return ResponseEntity.ok(updatedProduct);
+    }
+
+    // Delete a product (ADMIN Access only)
+    @DeleteMapping("/admin/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+            productService.deleteProduct(id);
+            return ResponseEntity.noContent().build();
+    }
+
+
 }
+
+

@@ -19,6 +19,4 @@ public class SecurityProperties {
     private String forbiddenMessage;
     private String accessDeniedMessage;
     private String optionsHttpMethod;
-
-    // Getters and setters
 }

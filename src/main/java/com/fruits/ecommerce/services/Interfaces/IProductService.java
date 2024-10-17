@@ -31,6 +31,9 @@ public interface IProductService {
 
     ProductDTO linkImagesToProduct(Long productId, List<Long> imageIds) throws ProductNotFoundException,
             ImageNotFoundException;
+    ProductDTO updateProduct(Long id, ProductDTO productDTO) throws ProductNotFoundException, InvalidProductDataException;
+    void deleteProduct(Long id) throws ProductNotFoundException;
+
 
    }
 

@@ -20,7 +20,6 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,13 +27,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import javax.management.relation.RoleNotFoundException;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -42,6 +40,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class AuthImplementation implements IUserService {
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
@@ -282,6 +281,7 @@ public class AuthImplementation implements IUserService {
         String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
         return email.matches(emailRegex);
     }
+
     /**
      * Retrieve roles from names.
      *
@@ -312,7 +312,6 @@ public class AuthImplementation implements IUserService {
     }
 
 
-
     private void sendRegistrationEmail(User user, String password) {
         try {
             emailService.sendNewPasswordEmail(user.getFirstName(), user.getUsername(), password, user.getEmail());
@@ -323,21 +322,12 @@ public class AuthImplementation implements IUserService {
             throw new RuntimeException("Failed to send registration email to:", e.getCause());
         }
     }
-    /**
-     * توليد كلمة مرور عشوائية .Generating a Random Password
-     *
-     * @return Generated-Password
-     */
-    private String generatePassword() {
-        return RandomStringUtils.randomAlphanumeric(8);
-    }
 
     @Override
     public void addRoleToUser(Long userId, RoleType roleType) throws UserNotFoundException, InvalidRoleException {
         if (roleType == null) {
             throw new InvalidRoleException("Role type cannot be null");
         }
-
         // Fetch user by ID
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
@@ -351,16 +341,14 @@ public class AuthImplementation implements IUserService {
             log.warn("User {} already has role {}", userId, roleType);
             return;
         }
-
         // Add role to user's set of roles
         user.getRoles().add(role);
-
         // Save user
         userRepository.save(user);
-
         // Log the action
         log.info("Role {} added to user {}", roleType, userId);
     }
+
     @Override
     public void removeRoleFromUser(Long userId, RoleType roleType) throws UserNotFoundException, InvalidRoleException {
         // Fetch user by ID
@@ -383,7 +371,7 @@ public class AuthImplementation implements IUserService {
             // Log that the user did not have the role
             log.warn("User {} does not have role {}", userId, roleType);
             // Optionally, you can throw an exception if this is considered an error
-             throw new RuntimeException("User does not have role: " + roleType);
+            throw new RuntimeException("User does not have role: " + roleType);
         }
     }
 
@@ -406,7 +394,116 @@ public class AuthImplementation implements IUserService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public UserDTO updateUser(Long userId, UserDTO userDTO) throws UserNotFoundException,
+            InvalidUserDataException, EmailExistException {
 
+        log.info("Updating user with ID: {}", userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        // Validate email if it's being changed
+        if (!user.getEmail().equals(userDTO.getEmail()) && userRepository.existsByEmail(userDTO.getEmail())) {
+            throw new EmailExistException("Email already exists: " + userDTO.getEmail());
+        }
+        // Update user fields
+        user.setFirstName(userDTO.getFirstName());
+        user.setLastName(userDTO.getLastName());
+        user.setEmail(userDTO.getEmail());
+        // Update other fields as necessary
+
+        // Validate updated user data
+        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        if (!violations.isEmpty()) {
+            throw new InvalidUserDataException("Invalid user data: " + violations);
+        }
+        User updatedUser = userRepository.save(user);
+        log.info("User updated successfully: {}", updatedUser.getUsername());
+        return userMapper.toDTO(updatedUser);
+    }
+
+
+    @Override
+    @Transactional
+    public void deleteUser(Long userId) throws UserNotFoundException {
+        log.info("Attempting to delete user with ID: {}", userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        userRepository.delete(user);
+        log.info("User deleted successfully: {}", user.getUsername());
+    }
+
+
+    @Override
+    @Transactional
+    public void changePassword(Long userId, String oldPassword, String newPassword)
+            throws UserNotFoundException, BadCredentialsException, InvalidUserDataException {
+        log.info("Attempting to change password for user ID: {}", userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        // Validate old password
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            log.warn("Invalid old password attempt for user ID: {}", userId);
+            throw new BadCredentialsException("Current password is incorrect");
+        }
+        // Validate new password
+        validatePassword(newPassword);
+        // Update password
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        // Send confirmation email
+        try {
+            emailService.sendPasswordChangeConfirmationEmail(user.getFirstName(), user.getEmail());
+            log.info("Password changed successfully for user ID: {}", userId);
+        } catch (MessagingException e) {
+            log.error("Failed to send password change confirmation email", e);
+            // Don't throw exception as password was already changed successfully
+        }
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(Long userId) {
+        try {
+            log.info("Attempting to reset password for user ID: {}", userId);
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
+
+            String newPassword = generateResetPassword();
+            String encodedPassword = passwordEncoder.encode(newPassword);
+            // update password
+            user.setPassword(encodedPassword);
+            userRepository.save(user);
+            emailService.sendPasswordResetToEmail(user.getFirstName(), user.getUsername(),newPassword,user.getEmail());
+            log.info("Password reset successfully for user ID: {}", userId);
+        } catch (UserNotFoundException e) {
+            log.error("User not found: {}", e.getMessage());
+            throw e; // Re-throw exception
+        } catch (MessagingException e) {
+            log.error("Error sending confirmation email: {}", e.getMessage());
+            throw new EmailExistException("Error sending confirmation email.");
+        } catch (Exception e) {
+            log.error("An unexpected error occurred: {}", e.getMessage());
+            throw new InvalidUserDataException("An unexpected error occurred.");
+        }
+    }
+
+    @Override
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
+    // generate reset password
+    private String generateResetPassword() {
+        return UUID.randomUUID().toString().substring(0, 10);
+    }
+
+    private void validatePassword(String password) throws InvalidUserDataException {
+        if (password == null || password.length() < 8) {
+            throw new InvalidUserDataException("Password must be at least 8 characters long");
+        }
+        // Add more password validation rules as needed
+    }
 
 
 }

@@ -12,6 +12,5 @@ import lombok.Setter;
 public class CustomerDTO {
     private Long id;
     private UserDTO user;
-    private AddressDTO billingAddress;
-    private AddressDTO shippingAddress;
+    private AddressDTO billingAddress,shippingAddress;
 }

@@ -72,7 +72,6 @@ public class User {
     private boolean isActive;
     private boolean isNotLocked;
 
-
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

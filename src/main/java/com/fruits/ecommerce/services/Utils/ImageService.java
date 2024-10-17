@@ -25,8 +25,12 @@ import java.util.UUID;
 @Service
 public class ImageService {
 
-    @Value("${image.upload-dir}")
-    private String uploadDir;
+    // if we use storing-image directly with project-files
+//    @Value("${image.upload-dir}")
+//    private String imageUploadDir;
+
+    @Value("${file.upload-dir}")
+    private String fileUploadDir;
 
     @Value("${image.allowed-mime-types}")
     private String allowedMimeTypesConfig;
@@ -46,7 +50,7 @@ public class ImageService {
         // generate Unique FileName
         String filename = generateUniqueFileName(image);
         // Determine File path
-        Path fileStorageLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
+        Path fileStorageLocation = Paths.get(fileUploadDir).toAbsolutePath().normalize();
         Path targetLocation = fileStorageLocation.resolve(filename);
         Files.createDirectories(targetLocation.getParent());
         // Save the image in the file system
@@ -80,7 +84,7 @@ public class ImageService {
     public Resource loadImageAsResource(String imageUrl) throws MalformedURLException, FileNotFoundException {
         // Extract the filename from imageUrl
         String filename = Paths.get(imageUrl).getFileName().toString();
-        Path filePath = Paths.get(uploadDir).resolve(filename).normalize();
+        Path filePath = Paths.get(fileUploadDir).resolve(filename).normalize();
         Resource resource = new UrlResource(filePath.toUri());
         if (resource.exists()) {
             return resource;
@@ -89,7 +93,7 @@ public class ImageService {
         }
     }
     public void deleteImage(String imageUrl) throws IOException {
-        Path filePath = Paths.get(uploadDir, imageUrl);
+        Path filePath = Paths.get(fileUploadDir, imageUrl);
         Files.deleteIfExists(filePath);
     }
     public void deleteImageByPath(String filePath) throws IOException {

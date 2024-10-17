@@ -108,7 +108,7 @@ public class AuthControllerTest {
     void testAddRoleToUser_Success() {
         // ترتيب البيانات
         Long userId = 1L;
-        RoleType roleType = RoleType.CLIENT;
+        RoleType roleType = RoleType.CUSTOMER;
 
         doNothing().when(authService).addRoleToUser(userId, roleType);
 
@@ -124,7 +124,7 @@ public class AuthControllerTest {
     void testRemoveRoleFromUser_Success() {
         // ترتيب البيانات
         Long userId = 1L;
-        RoleType roleType = RoleType.CLIENT;
+        RoleType roleType = RoleType.CUSTOMER;
 
         doNothing().when(authService).removeRoleFromUser(userId, roleType);
 

@@ -3,10 +3,7 @@ package com.fruits.ecommerce.exceptions.Global;
 
 import com.fruits.ecommerce.exceptions.ExceptionsDomain.*;
 import com.fruits.ecommerce.exceptions.HttpResponse;
-import com.fruits.ecommerce.exceptions.products.ImageNotFoundException;
-import com.fruits.ecommerce.exceptions.products.InvalidImageException;
-import com.fruits.ecommerce.exceptions.products.InvalidProductDataException;
-import com.fruits.ecommerce.exceptions.products.ProductNotFoundException;
+import com.fruits.ecommerce.exceptions.products.*;
 import com.fruits.ecommerce.models.enums.RoleType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -19,6 +16,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -110,15 +108,14 @@ public class GlobalExceptionHandler {
                 "Validation Error",
                 "Multiple validation errors occurred"
         );
-        httpResponse.setErrors(errors); // إضافة الأخطاء للـ response
-
+        httpResponse.setErrors(errors);
         return new ResponseEntity<>(httpResponse, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<HttpResponse> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
         String name = ex.getName();
-        String type = ex.getRequiredType().getSimpleName();
+        String type = Objects.requireNonNull(ex.getRequiredType()).getSimpleName();
         Object value = ex.getValue();
         String message = String.format("Invalid value for %s: '%s'.", name, value);
 
@@ -152,4 +149,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<HttpResponse> handleImageNotFoundException(ImageNotFoundException ex) {
         return createHttpResponse(HttpStatus.NOT_FOUND, "Image not found", ex.getMessage());
     }
+
+    @ExceptionHandler(CustomerNotFoundException.class)
+    public ResponseEntity<HttpResponse> handleCustomerNotFoundException(CustomerNotFoundException ex) {
+        return createHttpResponse(HttpStatus.NOT_FOUND, "Customer not found", ex.getMessage());
+    }
+    @ExceptionHandler(CartNotFoundException.class)
+    public ResponseEntity<HttpResponse> handleCartNotFoundException(CartNotFoundException ex) {
+        return createHttpResponse(HttpStatus.NOT_FOUND, "Cart not found", ex.getMessage());
+    }
+
+    @ExceptionHandler(ImageProcessingException.class)
+    public ResponseEntity<HttpResponse> handleImageProcessingException(ImageProcessingException ex) {
+        return createHttpResponse(HttpStatus.BAD_REQUEST, "Image Processing Failed.", ex.getMessage());
+    }
+
 }
