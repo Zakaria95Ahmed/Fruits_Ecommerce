@@ -56,8 +56,6 @@ public class UserDTO {
     private LocalDateTime updatedAt;
 
     private Set<String> roles;
-
     private boolean isActive;
-
     private boolean isNotLocked;
 }

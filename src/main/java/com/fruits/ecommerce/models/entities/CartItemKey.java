@@ -12,6 +12,5 @@ import java.io.Serializable;
 @AllArgsConstructor
 @Embeddable
 public class CartItemKey implements Serializable {
-    private Long cartId;
-    private Long productId;
+    private Long cartId,productId;
 }

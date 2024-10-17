@@ -31,7 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-@Service@Slf4j
+@Service
+@Slf4j
 @RequiredArgsConstructor
 public class ProductService implements IProductService {
     private final ProductRepository productRepository;
@@ -39,6 +40,7 @@ public class ProductService implements IProductService {
     private final ProductMapper productMapper;
     private final ProductImageMapper productImageMapper;
     private final ImageService imageService;
+
     @Override
     @Transactional
     public ProductDTO createProduct(ProductDTO productDTO) throws InvalidProductDataException {
@@ -56,11 +58,13 @@ public class ProductService implements IProductService {
             throw new InvalidProductDataException("Product price is required.");
         }
     }
+
     @Override
     public Page<ProductDTO> listProducts(int page, int pageSize) {
         Pageable pageable = PageRequest.of(page, pageSize);
         return productRepository.findAll(pageable).map(productMapper::toDTO);
     }
+
     @Override
     public ProductDTO getProductById(Long id) throws ProductNotFoundException {
         Product product = productRepository.findById(id)
@@ -94,7 +98,7 @@ public class ProductService implements IProductService {
             ProductImage image = productImageRepository.findById(id)
                     .orElseThrow(() -> new ImageNotFoundException("Image not found with ID: " + id));
 
-            // نستخدم filePath للوصول المباشر للملف
+            // We use filePath to access the file directly.
             Resource resource = imageService.loadImageByPath(image.getFilePath());
             String contentType = determineContentType(resource);
 
@@ -119,6 +123,7 @@ public class ProductService implements IProductService {
             return "application/octet-stream";
         }
     }
+
     @Override
     @Transactional
     public List<ProductImageDTO> uploadImages(List<MultipartFile> images)
@@ -155,6 +160,51 @@ public class ProductService implements IProductService {
 
     @Override
     @Transactional
+    public ProductDTO updateProduct(Long id, ProductDTO productDTO) throws ProductNotFoundException, InvalidProductDataException {
+        log.info("Updating product with ID: {}", id);
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found with ID: " + id));
+
+        validateProductData(productDTO);
+
+        // Update properties
+        existingProduct.setName(productDTO.getName());
+        existingProduct.setDescription(productDTO.getDescription());
+        existingProduct.setPrice(productDTO.getPrice());
+        //More properties can be added as needed.
+
+        Product updatedProduct = productRepository.save(existingProduct);
+        log.info("Product updated successfully. ID: {}", updatedProduct.getId());
+        return productMapper.toDTO(updatedProduct);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProduct(Long id) throws ProductNotFoundException {
+        log.info("Deleting product with ID: {}", id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found with ID: " + id));
+
+// Delete images associated with the product
+        List<ProductImage> images = productImageRepository.findByProductId(id);
+        for (ProductImage image : images) {
+            try {
+                imageService.deleteImageByPath(image.getFilePath());
+            } catch (IOException e) {
+                log.error("Failed to delete image file for product ID: {}, Image ID: {}", id, image.getId(), e);
+                // Continue deleting even if some images fail to delete
+            }
+        }
+        productImageRepository.deleteAll(images);
+
+        //finally delete the Product
+        productRepository.delete(product);
+        log.info("Product and associated images deleted successfully. ID: {}", id);
+    }
+
+
+    @Override
+    @Transactional
     public void deleteImage(Long imageId) {
         try {
             ProductImage image = productImageRepository.findById(imageId)
@@ -166,13 +216,14 @@ public class ProductService implements IProductService {
             // Delete the Image from DB
             productImageRepository.delete(image);
         } catch (ImageNotFoundException e) {
-            // تسجيل الخطأ أو التعامل معه حسب الحاجة
-            throw e; // إعادة رمي الاستثناء ليتم التعامل معه في مكان آخر
+            log.error("Failed to find image to delete", e);
+            throw e;
         } catch (IOException e) {
-            // تسجيل الخطأ أو التعامل معه
-            // ممكن ترمي استثناء مخصص لو حبيت
+            log.error("Failed to delete image file", e);
             throw new RuntimeException("Failed to delete image file", e);
         }
     }
+
+
 }
 
