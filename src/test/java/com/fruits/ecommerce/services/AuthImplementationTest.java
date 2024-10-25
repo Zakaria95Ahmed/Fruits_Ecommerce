@@ -1,8 +1,5 @@
 package com.fruits.ecommerce.services;
 
-
-import com.fruits.ecommerce.configuration.SecurityConfig.ExtraServices.EmailService;
-import com.fruits.ecommerce.configuration.SecurityConfig.ExtraServices.LoginAttemptService;
 import com.fruits.ecommerce.configuration.SecurityConfig.JWT_Filters.JWTTokenProvider;
 import com.fruits.ecommerce.configuration.SecurityConfig.SecurityCore.UserData;
 import com.fruits.ecommerce.exceptions.ExceptionsDomain.AccountLockedException;
@@ -18,6 +15,8 @@ import com.fruits.ecommerce.models.enums.RoleType;
 import com.fruits.ecommerce.models.mappers.UserMapper;
 import com.fruits.ecommerce.repository.RoleRepository;
 import com.fruits.ecommerce.repository.UserRepository;
+import com.fruits.ecommerce.services.Utils.EmailService;
+import com.fruits.ecommerce.services.Utils.LoginAttemptService;
 import com.fruits.ecommerce.services.implementations.AuthImplementation;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Validation;
@@ -130,7 +129,7 @@ public class AuthImplementationTest {
         userDTO.setPassword("password");
 
         Role defaultRole = new Role();
-        defaultRole.setName(RoleType.VISITOR);
+        defaultRole.setName(RoleType.USER);
 
         User userEntity = new User();
         userEntity.setFirstName("John");
@@ -154,7 +153,7 @@ public class AuthImplementationTest {
         when(userMapper.toEntity(any(UserDTO.class))).thenReturn(userEntity);
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
         when(userRepository.existsByEmail("newuser@example.com")).thenReturn(false);
-        when(roleRepository.findByName(RoleType.VISITOR)).thenReturn(Optional.of(defaultRole));
+        when(roleRepository.findByName(RoleType.USER)).thenReturn(Optional.of(defaultRole));
         when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(savedUser); // savedUser الآن يحتوي على firstName و email
         when(userMapper.toDTO(any(User.class))).thenReturn(userDTO);

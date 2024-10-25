@@ -31,7 +31,6 @@ import java.util.Collections;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-
     private final UserDetailsService userDetailsService;
     private final JwtAuthorizationFilter jwtAuthorizationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
@@ -102,9 +101,10 @@ public class SecurityConfig {
         if (origin == null || origin.isEmpty()) {
             origin = allowedOrigin;
         }
+
+    /* direct static method to put front-end api-url --*//*
+        configuration.setAllowedOrigins(List.of("http://localhost:4200"));*/
         configuration.setAllowedOrigins(Collections.singletonList(origin));
-    /* direct static method to put front-end api-url
-//     configuration.setAllowedOrigins(List.of("http://localhost:4200"));*/
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);

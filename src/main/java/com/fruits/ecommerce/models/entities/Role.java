@@ -9,7 +9,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 
-
 @Setter
 @Getter
 @Entity
@@ -24,11 +23,12 @@ public class Role {
     @Column(length = 25, unique = true, nullable = false)
     private RoleType name;
 
-// To avoid NullPointerException
+    // To avoid NullPointerException
     @ManyToMany(mappedBy = "roles")
     private Set<User> users = new HashSet<>();
 
-    public Role() {}
+    public Role() {
+    }
 
     public Role(RoleType name) {
         this.name = name;
@@ -38,10 +38,4 @@ public class Role {
         return new Role(name);
     }
 
-    @PrePersist
-    public void prePersist() {
-        if (!this.name.name().startsWith("ROLE_")) {
-            this.name = RoleType.valueOf("ROLE_" + this.name.name());
-        }
-    }
 }

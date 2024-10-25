@@ -17,19 +17,26 @@ public class LoginAttemptService {
     private static final int MAXIMUM_NUMBER_OF_ATTEMPTS = 3;
     private static final int ATTEMPT_INCREMENT = 1;
     private final LoadingCache<Long, Integer> loginAttemptCache;
+
+    /**
+     * Constructs a LoginAttemptService with a configured cache.
+     * The cache is currently set to expire entries after 2 minutes and hold a maximum of 100 entries.
+     * Note: The expiration time can be adjusted by modifying the expireAfterWrite() parameter.
+     * Available time units: DAYS, HOURS, MINUTES, SECONDS (uncomment the desired option).
+     */
     public LoginAttemptService() {
         super();
         loginAttemptCache = CacheBuilder.newBuilder()
-                //.expireAfterWrite(1, TimeUnit.DAYS)
-//                .expireAfterWrite(1, TimeUnit.HOURS)
-//                .expireAfterWrite(1, TimeUnit.MINUTES)
-//                .expireAfterWrite(1, TimeUnit.SECONDS)
+                // Current setting: Entries expire after 2 minutes.
+                // We Can Change it into another time period
                 .expireAfterWrite(2, TimeUnit.MINUTES)
+                // Set maximum cache size
                 .maximumSize(100)
                 .build(new CacheLoader<>() {
                     @Override
                     @Nonnull
                     public Integer load(@Nonnull Long key) {
+                        // Default value for a new key
                         return 0;
                     }
                 });

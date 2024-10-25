@@ -4,11 +4,15 @@ import com.fruits.ecommerce.exceptions.ExceptionsDomain.*;
 import com.fruits.ecommerce.models.dtos.AuthResponseDTO;
 import com.fruits.ecommerce.models.dtos.LoginRequestDTO;
 import com.fruits.ecommerce.models.dtos.UserDTO;
+import com.fruits.ecommerce.models.entities.User;
 import com.fruits.ecommerce.models.enums.RoleType;
+import jakarta.mail.MessagingException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 
 import javax.management.relation.RoleNotFoundException;
 import java.util.List;
+import java.util.Optional;
 
 public interface IUserService {
 
@@ -43,4 +47,42 @@ public interface IUserService {
     List<UserDTO> getAllCustomers() throws RoleNotFoundException;
     List<UserDTO> getAllUsers();
 
+
+    /**
+     * Updates an existing user's information.
+     *
+     * @param userId The ID of the user to update.
+     * @param userDTO The updated user information.
+     * @return The updated user's data transfer object.
+     * @throws UserNotFoundException If the user is not found.
+     * @throws InvalidUserDataException If the updated data is invalid.
+     * @throws EmailExistException If the new email already exists for another user.
+     */
+    UserDTO updateUser(Long userId, UserDTO userDTO) throws UserNotFoundException, InvalidUserDataException, EmailExistException;
+
+    /**
+     * Deletes a user from the system. Only accessible by admin.
+     *
+     * @param userId The ID of the user to delete.
+     * @throws UserNotFoundException If the user is not found.
+     * @throws AccessDeniedException If the current user is not an admin.
+     */
+    void deleteUser(Long userId) throws UserNotFoundException, AccessDeniedException;
+
+    /**
+     * Changes the user's password when the user knows their current password.
+     *
+     * @param userId The ID of the user
+     * @param oldPassword The current password
+     * @param newPassword The new password to set
+     * @throws UserNotFoundException If the user is not found
+     * @throws BadCredentialsException If the old password is incorrect
+     * @throws InvalidUserDataException If the new password is invalid
+     */
+    void changePassword(Long userId, String oldPassword, String newPassword)
+            throws UserNotFoundException, BadCredentialsException, InvalidUserDataException;
+
+    void resetPassword(Long userId) throws UserNotFoundException, MessagingException;
+
+    Optional<User> findByUsername(String username);
 }
