@@ -19,32 +19,34 @@ import java.util.stream.Collectors;
  */
 @Mapper(componentModel = "spring")
 public interface UserMapper {
+
     /**
-     // Converts a User entity to a UserDTO.
-     // The roles field is mapped using a custom method specified by qualifiedByName.
-     // @param user The User entity to convert
-     // @return The resulting UserDTO
+     * Converts a User entity to a UserDTO.
+     * @param user The User entity to convert
+     * @return The resulting UserDTO
      */
     @Mapping(target = "roles", source = "roles", qualifiedByName = "rolesToStringSet")
+    @Mapping(target = "locked", source = "locked")
+    @Mapping(target = "active", source = "active")
     UserDTO toDTO(User user);
 
     /**
-     // Converts a UserDTO to a User entity.
-     // The roles field is ignored in this mapping as it typically requires more complex logic.
-     // @param userDTO The UserDTO to convert
-    // @return The resulting User entity
+     * Converts a UserDTO to a User entity.
+     * @param userDTO The UserDTO to convert
+     * @return The resulting User entity
      */
     @Mapping(target = "roles", ignore = true)
     @Mapping(target = "password", source = "password")
+    @Mapping(target = "locked", source = "locked")
+    @Mapping(target = "active", source = "active")
     @InheritInverseConfiguration
     User toEntity(UserDTO userDTO);
 
     /**
-     // Custom method to convert Set<Role> to Set<String>.
-     // This method is used by MapStruct when converting roles in the toDTO method.
-     // @param roles Set of Role entities
-     // @return Set of role names as strings
-     **/
+     * Custom method to convert Set<Role> to Set<String>.
+     * @param roles Set of Role entities
+     * @return Set of role names as strings
+     */
     @Named("rolesToStringSet")
     default Set<String> rolesToStringSet(Set<Role> roles) {
         if (roles == null) {
@@ -56,13 +58,10 @@ public interface UserMapper {
     }
 
     /**
-     // Custom method to convert Set<String> to Set<Role>.
-     // This method is not directly used in the current mapper but can be useful
-     // if we need to convert role names back to Role entities in the future.
-     // @param roleNames Set of role names as strings
-     // @return Set of Role entities
-     **/
-
+     * Custom method to convert Set<String> to Set<Role>.
+     * @param roleNames Set of role names as strings
+     * @return Set of Role entities
+     */
     @Named("stringSetToRoles")
     default Set<Role> stringSetToRoles(Set<String> roleNames) {
         if (roleNames == null) {
@@ -76,5 +75,5 @@ public interface UserMapper {
                 })
                 .collect(Collectors.toSet());
     }
-
 }
+

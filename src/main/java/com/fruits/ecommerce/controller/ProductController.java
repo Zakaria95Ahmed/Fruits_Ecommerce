@@ -1,6 +1,5 @@
 package com.fruits.ecommerce.controller;
 
-
 import com.fruits.ecommerce.models.dtos.ProductDTO;
 import com.fruits.ecommerce.models.dtos.ProductImageDTO;
 import com.fruits.ecommerce.services.Interfaces.IProductService;
@@ -13,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,7 +23,7 @@ import java.net.MalformedURLException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
 public class ProductController {
 
@@ -32,7 +32,6 @@ public class ProductController {
 
     // Create a new product (ADMIN Access only)
     @PostMapping("/admin")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductDTO> createProduct(@Valid @RequestBody ProductDTO productDTO) {
         ProductDTO createdProduct = productService.createProduct(productDTO);
         return new ResponseEntity<>(createdProduct, HttpStatus.CREATED);
@@ -46,8 +45,10 @@ public class ProductController {
         Page<ProductDTO> products = productService.listProducts(page, pageSize);
         return ResponseEntity.ok(products);
     }
+
     // Get details of a specific product
     @GetMapping("/{id}")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<ProductDTO> getProduct(@PathVariable Long id) {
         ProductDTO productDTO = productService.getProductById(id);
         return ResponseEntity.ok(productDTO);
@@ -55,7 +56,6 @@ public class ProductController {
 
     // Upload independent images (ADMIN Access only)
     @PostMapping("/admin/images/upload")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ProductImageDTO>> uploadImages(
             @RequestParam("images") List<MultipartFile> images) throws IOException {
         List<ProductImageDTO> imageDTOs = productService.uploadImages(images);
@@ -83,9 +83,9 @@ public class ProductController {
         }
     }
 
+
     // Link existing images to a specific product (ADMIN Access only)
     @PutMapping("/admin/{productId}/images/link")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductDTO> linkImagesToProduct(
             @PathVariable Long productId,
             @RequestBody List<Long> imageIds) {
@@ -96,7 +96,6 @@ public class ProductController {
 
     // Upload new images and link them to a product (ADMIN Access only)
     @PostMapping("/admin/{productId}/images")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ProductImageDTO>> addImagesToProduct(
             @PathVariable Long productId,
             @RequestParam("images") List<MultipartFile> images) throws IOException {
@@ -104,30 +103,41 @@ public class ProductController {
         return ResponseEntity.ok(imageDTOs);
     }
 
+
     // Delete an image(ADMIN Access only)
     @DeleteMapping("/admin/images/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteImage(@PathVariable Long id) throws IOException {
         productService.deleteImage(id);
         return ResponseEntity.noContent().build();
     }
 
+
     // Update a product (ADMIN Access only)
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductDTO> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductDTO productDTO) {
-            ProductDTO updatedProduct = productService.updateProduct(id, productDTO);
-            return ResponseEntity.ok(updatedProduct);
+        ProductDTO updatedProduct = productService.updateProduct(id, productDTO);
+        return ResponseEntity.ok(updatedProduct);
     }
+
 
     // Delete a product (ADMIN Access only)
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-            productService.deleteProduct(id);
-            return ResponseEntity.noContent().build();
+        productService.deleteProduct(id);
+        return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/byCategory/{categoryId}")
+    public ResponseEntity<List<ProductDTO>> getProductsByCategory(@PathVariable Long categoryId) {
+        List<ProductDTO> products = productService.getProductsByCategory(categoryId);
+        return ResponseEntity.ok(products);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<ProductDTO>> searchProducts(@RequestParam String query) {
+        List<ProductDTO> products = productService.searchProduct(query);
+        return ResponseEntity.ok(products);
+    }
 
 }
 

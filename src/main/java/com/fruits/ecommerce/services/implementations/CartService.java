@@ -1,12 +1,14 @@
 package com.fruits.ecommerce.services.implementations;
 
 import com.fruits.ecommerce.configuration.SecurityConfig.SecurityCore.UserData;
-import com.fruits.ecommerce.exceptions.ExceptionsDomain.UserNotFoundException;
-import com.fruits.ecommerce.exceptions.products.CartNotFoundException;
-import com.fruits.ecommerce.exceptions.products.ProductNotFoundException;
+import com.fruits.ecommerce.exceptions.exceptionsDomain.users.UserNotFoundException;
+import com.fruits.ecommerce.exceptions.exceptionsDomain.products.CartNotFoundException;
+import com.fruits.ecommerce.exceptions.global.ResourceNotFoundException;
+import com.fruits.ecommerce.models.dtos.AddressDTO;
 import com.fruits.ecommerce.models.dtos.CartDTO;
 import com.fruits.ecommerce.models.entities.*;
 import com.fruits.ecommerce.models.enums.RoleType;
+import com.fruits.ecommerce.models.mappers.AddressMapper;
 import com.fruits.ecommerce.models.mappers.CartMapper;
 import com.fruits.ecommerce.repository.*;
 import com.fruits.ecommerce.services.Interfaces.ICartService;
@@ -28,8 +30,10 @@ public class CartService implements ICartService {
     private final ProductRepository productRepository;
     private final CustomerRepository customerRepository;
     private final CartItemRepository cartItemRepository;
-    private final CartMapper cartMapper;
     private final RoleRepository roleRepository;
+    private final CartMapper cartMapper;
+    private final AddressMapper addressMapper;
+
 
     @Value("${app.shipping.cost}")
     private BigDecimal shippingCost;
@@ -56,7 +60,7 @@ public class CartService implements ICartService {
         log.info("Customer found/created with ID: {}", customer.getId());
 
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
         log.info("Product found with ID: {}", product.getId());
 
         Cart cart = cartRepository.findByCustomer(customer)
@@ -176,6 +180,27 @@ public class CartService implements ICartService {
             throw new RuntimeException("Failed to update cart item", e);
         }
     }
+
+    @Override
+    @Transactional
+    public void updateCustomerAddresses(Authentication authentication, AddressDTO billingAddress, AddressDTO shippingAddress) {
+        User user = getUserFromAuthentication(authentication);
+        Customer customer = getOrCreateCustomer(user);
+
+        if (billingAddress != null) {
+            Address billingAddressEntity = addressMapper.toEntity(billingAddress);
+            customer.setBillingAddress(billingAddressEntity);
+        }
+
+        if (shippingAddress != null) {
+            Address shippingAddressEntity = addressMapper.toEntity(shippingAddress);
+            customer.setShippingAddress(shippingAddressEntity);
+        }
+
+        customerRepository.save(customer);
+        log.info("Updated addresses for customer ID: {}", customer.getId());
+    }
+
 
 }
 

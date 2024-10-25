@@ -27,6 +27,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static com.fruits.ecommerce.configuration.SecurityConfig.constants.SecurityConstants.*;
+
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -35,14 +38,6 @@ public class SecurityConfig {
     private final JwtAuthorizationFilter jwtAuthorizationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
-    private static final String[] PUBLIC_URLS = {
-            "/api/auth/register",
-            "/api/auth/login",
-            "/api/products/**",
-            "/api/public/**",
-            "/swagger-ui/**",
-            "/v3/api-docs/**",
-            "/swagger-ui.html"};
 
     public SecurityConfig(UserDetailsService userDetailsService,
                           JwtAuthorizationFilter jwtAuthorizationFilter,
@@ -80,10 +75,12 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(jwtAccessDeniedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth ->
-                                auth.requestMatchers(PUBLIC_URLS).permitAll()
-//                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                                        .anyRequest().authenticated()
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(PUBLIC_URLS_APIS).permitAll()
+                        .requestMatchers(ADMIN_URLS_APIS).hasRole("ADMIN")
+                        .requestMatchers(CUSTOMER_USER_URLS_APIS).hasAnyRole("CUSTOMER", "USER")
+                        .requestMatchers(CUSTOMER_URLS_APIS).hasRole("CUSTOMER")
+                        .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -102,7 +99,7 @@ public class SecurityConfig {
             origin = allowedOrigin;
         }
 
-    /* direct static method to put front-end api-url --*//*
+        /* direct static method to put front-end api-url --*//*
         configuration.setAllowedOrigins(List.of("http://localhost:4200"));*/
         configuration.setAllowedOrigins(Collections.singletonList(origin));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

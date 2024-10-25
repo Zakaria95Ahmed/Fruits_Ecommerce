@@ -16,7 +16,7 @@ public class HttpResponse {
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSZ")
     private String timeStamp;
-    private int statusCode; // 200, 201, 400, 500
+    private int statusCode; // 200, 201, 400,401,403, 500
     private HttpStatus httpStatus;
     private String reason;
     private String message;

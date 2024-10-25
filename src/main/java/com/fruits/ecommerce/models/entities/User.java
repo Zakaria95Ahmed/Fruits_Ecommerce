@@ -14,12 +14,12 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
-@NoArgsConstructor
-@AllArgsConstructor
 @Setter
 @Getter
 @Entity
 @Table(name = "users")
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
     @Id
@@ -50,6 +50,7 @@ public class User {
     @Column(name = "password", nullable = false)
     private String password;
 
+
     private String address;
 
     @Column(name = "created_at", updatable = false)
@@ -69,16 +70,21 @@ public class User {
     )
     private Set<Role> roles = new HashSet<>();
 
-    private boolean isActive;
-    private boolean isNotLocked;
+    // Changed from isActive
+    @Column(name = "active")
+    private boolean active;
+
+    // Changed from isNotLocked to represent the actual state
+    @Column(name = "locked")
+    private boolean locked;
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.lastLogin = this.createdAt;
         this.updatedAt = this.createdAt;
-        this.isActive = true;
-        this.isNotLocked = true;
+        this.active = true;
+        this.locked = false; // User starts unlocked
     }
 
     public void updateLastLogin() {

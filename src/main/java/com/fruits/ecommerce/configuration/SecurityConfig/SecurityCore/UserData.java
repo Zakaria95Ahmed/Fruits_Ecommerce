@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserData implements UserDetails {
     private final User user;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return user.getRoles().stream()
@@ -36,7 +37,7 @@ public class UserData implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return this.user.isNotLocked();
+        return !this.user.isLocked();
     }
 
     @Override

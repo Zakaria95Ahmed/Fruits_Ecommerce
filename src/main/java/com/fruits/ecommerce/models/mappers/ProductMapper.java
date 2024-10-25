@@ -10,13 +10,19 @@ import org.mapstruct.Named;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Mapper(componentModel = "spring", uses = {ProductImageMapper.class})
+@Mapper(componentModel = "spring", uses = {ProductImageMapper.class, CategoryMapper.class})
 public interface ProductMapper {
 
+
     @Mapping(target = "imageUrls", source = "imageUrls", qualifiedByName = "imagesToUrls")
+    @Mapping(target = "categoryId", source = "category.id")
+    @Mapping(target = "categoryName", source = "category.name")
     ProductDTO toDTO(Product product);
+
+
     // We ignore the images when converting from DTO to Entity
     @Mapping(target = "imageUrls", ignore = true)
+    @Mapping(target = "category", ignore = true)
     Product toEntity(ProductDTO productDTO);
 
     @Named("imagesToUrls")

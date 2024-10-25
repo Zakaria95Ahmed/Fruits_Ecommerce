@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ProductImageDTO {
     private Long id;
-    private String imageUrl,filePath;
+    private String imageUrl;
+    private String filePath;
     private LocalDateTime createdAt;
 }
