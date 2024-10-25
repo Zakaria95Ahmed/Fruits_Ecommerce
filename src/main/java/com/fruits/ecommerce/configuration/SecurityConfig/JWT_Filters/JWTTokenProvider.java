@@ -25,17 +25,18 @@ import java.util.stream.Collectors;
 import static com.auth0.jwt.algorithms.Algorithm.HMAC512;
 import static java.util.Arrays.stream;
 
-@Component@RequiredArgsConstructor
+@Component
+@RequiredArgsConstructor
 public class JWTTokenProvider {
-
     @Value("${jwt.secret}")
     private String secret;
     private final SecurityProperties securityProperties;
+
     public String generateJwtToken(UserData userData) {
         String[] claims = getClaimsFromUser(userData);
         return JWT.create().withIssuer(securityProperties.getIssuer()).withAudience(securityProperties.getAudience())
                 .withIssuedAt(new Date()).withSubject(userData.getUsername())
-                .withArrayClaim(securityProperties.getAuthorities(), claims).withExpiresAt(new Date(System.currentTimeMillis() + securityProperties.getExpirationTime() ))
+                .withArrayClaim(securityProperties.getAuthorities(), claims).withExpiresAt(new Date(System.currentTimeMillis() + securityProperties.getExpirationTime()))
                 .sign(HMAC512(secret.getBytes()));
     }
 
@@ -76,7 +77,7 @@ public class JWTTokenProvider {
         try {
             Algorithm algorithm = HMAC512(secret);
             verifier = JWT.require(algorithm).withIssuer(securityProperties.getIssuer()).build();
-        }catch (JWTVerificationException exception) {
+        } catch (JWTVerificationException exception) {
             throw new JWTVerificationException(securityProperties.getTokenCannotBeVerified());
         }
         return verifier;
@@ -84,7 +85,7 @@ public class JWTTokenProvider {
 
     private String[] getClaimsFromUser(UserData user) {
         List<String> authorities = new ArrayList<>();
-        for (GrantedAuthority grantedAuthority : user.getAuthorities()){
+        for (GrantedAuthority grantedAuthority : user.getAuthorities()) {
             authorities.add(grantedAuthority.getAuthority());
         }
         return authorities.toArray(new String[0]);

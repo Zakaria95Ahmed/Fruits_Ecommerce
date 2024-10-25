@@ -1,18 +1,21 @@
 package com.fruits.ecommerce.services.implementations;
 
+import com.fruits.ecommerce.configuration.CreateUser;
 import com.fruits.ecommerce.configuration.SecurityConfig.JWT_Filters.JWTTokenProvider;
 import com.fruits.ecommerce.configuration.SecurityConfig.SecurityCore.UserData;
-import com.fruits.ecommerce.exceptions.ExceptionsDomain.*;
+import com.fruits.ecommerce.exceptions.exceptionsDomain.users.*;
 import com.fruits.ecommerce.models.dtos.AuthResponseDTO;
-import com.fruits.ecommerce.models.dtos.LoginRequestDTO;
 import com.fruits.ecommerce.models.dtos.UserDTO;
+import com.fruits.ecommerce.models.entities.Address;
+import com.fruits.ecommerce.models.entities.Customer;
 import com.fruits.ecommerce.models.entities.Role;
 import com.fruits.ecommerce.models.entities.User;
 import com.fruits.ecommerce.models.enums.RoleType;
 import com.fruits.ecommerce.models.mappers.UserMapper;
+import com.fruits.ecommerce.repository.CustomerRepository;
 import com.fruits.ecommerce.repository.RoleRepository;
 import com.fruits.ecommerce.repository.UserRepository;
-import com.fruits.ecommerce.services.Interfaces.IUserService;
+import com.fruits.ecommerce.services.Interfaces.UserService;
 import com.fruits.ecommerce.services.Utils.EmailService;
 import com.fruits.ecommerce.services.Utils.LoginAttemptService;
 import jakarta.mail.MessagingException;
@@ -20,17 +23,19 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.validation.annotation.Validated;
 
-import javax.management.relation.RoleNotFoundException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -39,34 +44,46 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthImplementation implements IUserService {
+public class AuthImplementation implements UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+    private final CustomerRepository customerRepository; // Injected CustomerRepository
     private final AuthenticationManager authenticationManager;
     private final JWTTokenProvider jwtTokenProvider;
     private final LoginAttemptService loginAttemptService;
     private final EmailService emailService;
     private final Validator validator;
 
-    /**
-     * Registering a new user with the provided details.
-     *
-     * @param userDTO --->   The new user's details.
-     * @return UserDTO  --->  with the registered user's information.
-     * @throws UsernameExistException   --->  if the username already exists.
-     * @throws EmailExistException      --->  if the email already exists.
-     * @throws InvalidRoleException     --->  if an invalid role is provided.
-     * @throws InvalidUserDataException ---> if the user data is invalid.
-     *                                  //@throws MessagingException        ---> if the email fails to send.
-     */
+    private User createUser(@Validated(CreateUser.class) UserDTO userDTO, Set<Role> roles) {
+        User user = userMapper.toEntity(userDTO);
+        String encodedPassword = passwordEncoder.encode(userDTO.getPassword());
+        user.setPassword(encodedPassword);
+        user.setRoles(roles);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setActive(true);
+        user.setLocked(false);
+        return user;
+    }
+
+
+    @Async
+    public void sendRegistrationEmailAsync(User user, String password) {
+        sendRegistrationEmail(user, password);
+    }
 
 
     @Override
-    public UserDTO register(UserDTO userDTO) {
-        log.info("Starting registration process for user: {}", userDTO.getUsername());
+    public UserDTO register(HttpHeaders headers) {
+        log.info("Starting secure registration process");
+
+        // Validate headers first
+        validateRegistrationHeaders(headers);
+
+        // Extract and convert registration data
+        UserDTO userDTO = extractRegistrationData(headers);
 
         try {
             validateNewUser(userDTO);
@@ -84,79 +101,123 @@ public class AuthImplementation implements IUserService {
         }
     }
 
-    private User createUser(UserDTO userDTO, Set<Role> roles) {
-        User user = userMapper.toEntity(userDTO);
-        String encodedPassword = passwordEncoder.encode(userDTO.getPassword());
-        user.setPassword(encodedPassword);
-        user.setRoles(roles);
-        user.setCreatedAt(LocalDateTime.now());
-        user.setActive(true);
-        user.setNotLocked(true);
-        return user;
-    }
-
-    @Async
-    public void sendRegistrationEmailAsync(User user, String password) {
-        sendRegistrationEmail(user, password);
-    }
-
-    /**
-     * User login and data validation.
-     *
-     * @param loginRequest --->  The login details.
-     * @return AuthResponseDTO          --->  with the JWT Token and user information.
-     * @throws AuthenticationException --->  if authentication fails.
-     * @throws UserNotFoundException   --->   if the user is not found.
-     * @throws AccountLockedException  --->  if the account is locked.
-     * @throws BadCredentialsException --->  if the credentials are incorrect.
-     */
     @Override
-    public AuthResponseDTO login(LoginRequestDTO loginRequest) throws AuthenticationException,
-            UserNotFoundException, AccountLockedException, BadCredentialsException {
+    public AuthResponseDTO login(HttpHeaders headers) {
+        // Validate headers first
+        validateLoginHeaders(headers);
 
-        String identifier = StringUtils.hasText(loginRequest.getUsername()) ?
-                loginRequest.getUsername() : loginRequest.getEmail();
+        // Extract credentials
+        String identifier = headers.getFirst("X-Auth-Username"); // maybe username or email
+        String password = headers.getFirst("X-Auth-Password");
 
-        // Find the user
-        User user = getUserByIdentifier(identifier);
-        // Check if the account is locked
-        if (!user.isNotLocked()) {
-            throw new AccountLockedException("Your account has been locked due to multiple failed login attempts. " +
-                    "Please contact support.");
+        // Find the user by username or email
+        User user = getUserByIdentifierOrEmail(identifier);
+
+        // Check if account is locked
+        if (user.isLocked()) {
+            throw new AccountLockedException("Your account has been locked due to multiple failed login attempts.");
         }
 
         try {
             // Attempt authentication
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(identifier, loginRequest.getPassword())
+                    new UsernamePasswordAuthenticationToken(identifier, password)
             );
 
-            // If authentication is successful, reset failed attempts and update last login
+            // Reset failed attempts and update last login
             loginAttemptService.evictUserFromLoginAttemptCache(user.getId());
             user.updateLastLogin();
-            user.setNotLocked(true);
+            user.setLocked(false);
             userRepository.save(user);
 
-            // Create JWT Token
+            // Generate JWT Token
             String token = jwtTokenProvider.generateJwtToken((UserData) authentication.getPrincipal());
 
-            // Return authentication response
             return new AuthResponseDTO(token, userMapper.toDTO(user));
 
         } catch (AuthenticationException ex) {
-            // Add failed login attempt
-            log.error("Login failed for {}: {}", identifier, ex.getMessage());
-            loginAttemptService.addUserToLoginAttemptCache(user.getId());
+            handleFailedLogin(user, identifier, ex);
+            throw ex;
+        }
+    }
 
-            // Check if max attempts exceeded after this attempt
-            if (loginAttemptService.hasExceededMaxAttempts(user.getId())) {
-                user.setNotLocked(false);
-                userRepository.save(user);
-                throw new AccountLockedException("Your account has been locked due to multiple failed login attempts. " +
-                        "Please try again later or Contact Technical Support-Team.");
-            }
+    //  Add a new method to search for a user using either username or email
+    private User getUserByIdentifierOrEmail(String identifier) {
+        //  Use Optional to search for the user
+        User user = userRepository.findByUsername(identifier)
+                .orElseGet(() -> userRepository.findByEmail(identifier)
+                        .orElseThrow(() ->
+                                new UsernameNotFoundException("User not found with identifier: " + identifier)));
+        return user;
+    }
 
-            throw new BadCredentialsException("In-Correct Credentials");
+
+    // Private methods for header validation and data extraction
+    private void validateRegistrationHeaders(HttpHeaders headers) {
+        List<String> requiredHeaders = Arrays.asList(
+                "X-Register-Username",
+                "X-Register-Password",
+                "X-Register-Email",
+                "X-Register-FirstName",
+                "X-Register-LastName",
+                "X-Register-Address"
+        );
+
+        List<String> missingHeaders = requiredHeaders.stream()
+                .filter(header -> !headers.containsKey(header))
+                .collect(Collectors.toList());
+
+        if (!missingHeaders.isEmpty()) {
+            throw new InvalidRequestHeaderException("Missing required headers: " +
+                    String.join(", ", missingHeaders));
+        }
+    }
+
+    private void validateLoginHeaders(HttpHeaders headers) {
+        if (!headers.containsKey("X-Auth-Username")) {
+            throw new InvalidRequestHeaderException("Missing X-Auth-Username header");
+        }
+        if (!headers.containsKey("X-Auth-Password")) {
+            throw new InvalidRequestHeaderException("Missing X-Auth-Password header");
+        }
+    }
+
+    private UserDTO extractRegistrationData(HttpHeaders headers) {
+        return UserDTO.builder()
+                .username(headers.getFirst("X-Register-Username"))
+                .password(headers.getFirst("X-Register-Password"))
+                .email(headers.getFirst("X-Register-Email"))
+                .firstName(headers.getFirst("X-Register-FirstName"))
+                .lastName(headers.getFirst("X-Register-LastName"))
+                .address(headers.getFirst("X-Register-Address"))
+                .roles(parseRoles(headers.getFirst("X-Register-Roles")))
+                .build();
+    }
+
+    private Set<String> parseRoles(String rolesHeader) {
+        if (rolesHeader == null || rolesHeader.trim().isEmpty()) {
+            return new HashSet<>();
+        }
+        return Arrays.stream(rolesHeader.split(","))
+                .map(String::trim)
+                .collect(Collectors.toSet());
+    }
+
+    private void handleFailedLogin(User user, String identifier, AuthenticationException ex) {
+        log.error("Login failed for {}: {}", identifier, ex.getMessage());
+        loginAttemptService.addUserToLoginAttemptCache(user.getId());
+
+        if (loginAttemptService.hasExceededMaxAttempts(user.getId())) {
+            user.setLocked(true);
+            userRepository.save(user);
+            throw new AccountLockedException("Account locked due to multiple failed attempts.");
+        }
+    }
+
+    // Custom exception for header validation
+    public static class InvalidRequestHeaderException extends RuntimeException {
+        public InvalidRequestHeaderException(String message) {
+            super(message);
         }
     }
 
@@ -165,8 +226,8 @@ public class AuthImplementation implements IUserService {
     public void lockUser(String identifier) {
         User user = getUserByIdentifier(identifier);
 
-        if (user.isNotLocked()) {
-            user.setNotLocked(false);
+        if (!user.isLocked()) {
+            user.setLocked(true);
             loginAttemptService.addUserToLoginAttemptCache(user.getId());
             userRepository.save(user);
             sendAccountLockedEmailAsync(user);
@@ -181,8 +242,8 @@ public class AuthImplementation implements IUserService {
     public void unlockUser(String identifier) {
         User user = getUserByIdentifier(identifier);
 
-        if (!user.isNotLocked()) {
-            user.setNotLocked(true);
+        if (user.isLocked()) {
+            user.setLocked(false);
             loginAttemptService.evictUserFromLoginAttemptCache(user.getId());
             userRepository.save(user);
             sendAccountUnlockedEmailAsync(user);
@@ -324,6 +385,7 @@ public class AuthImplementation implements IUserService {
     }
 
     @Override
+    @Transactional
     public void addRoleToUser(Long userId, RoleType roleType) throws UserNotFoundException, InvalidRoleException {
         if (roleType == null) {
             throw new InvalidRoleException("Role type cannot be null");
@@ -341,15 +403,22 @@ public class AuthImplementation implements IUserService {
             log.warn("User {} already has role {}", userId, roleType);
             return;
         }
+
         // Add role to user's set of roles
         user.getRoles().add(role);
         // Save user
         userRepository.save(user);
-        // Log the action
         log.info("Role {} added to user {}", roleType, userId);
+
+        // If the role added is CUSTOMER, create an entry in the customers table
+        if (roleType == RoleType.CUSTOMER) {
+            createCustomerEntry(user);
+        }
     }
 
+
     @Override
+    @Transactional
     public void removeRoleFromUser(Long userId, RoleType roleType) throws UserNotFoundException, InvalidRoleException {
         // Fetch user by ID
         User user = userRepository.findById(userId)
@@ -363,23 +432,53 @@ public class AuthImplementation implements IUserService {
         boolean removed = user.getRoles().remove(role);
 
         if (removed) {
-            // Save user if role was removed
+            // Save user
             userRepository.save(user);
-            // Log the action
             log.info("Role {} removed from user {}", roleType, userId);
+
+            // If the role removed is CUSTOMER, perform a soft delete on the customer entry
+            if (roleType == RoleType.CUSTOMER) {
+                softDeleteCustomerEntry(userId);
+            }
         } else {
-            // Log that the user did not have the role
             log.warn("User {} does not have role {}", userId, roleType);
-            // Optionally, you can throw an exception if this is considered an error
             throw new RuntimeException("User does not have role: " + roleType);
         }
     }
 
+    // Helper method to create a Customer entry
+    private void createCustomerEntry(User user) {
+        Optional<Customer> existingCustomer = customerRepository.findByUserId(user.getId());
+        if (existingCustomer.isPresent()) {
+            log.info("Customer entry already exists for user {}", user.getId());
+            return;
+        }
+        Customer customer = new Customer();
+        customer.setUser(user);
+        customer.setBillingAddress(new Address());  // Initialize with default or provided data DTO
+        customer.setShippingAddress(new Address());  // Initialize with default or provided data DTO
+        customer.setActive(true); // Enable record
+        customerRepository.save(customer);
+        log.info("Customer entry created for user {}", user.getId());
+    }
+
+    // Helper method to perform a soft delete on the Customer entry
+    private void softDeleteCustomerEntry(Long userId) {
+        Customer customer = customerRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Customer entry not found for user: " + userId));
+
+        // Implement soft delete logic, e.g., setting an 'isDeleted' flag
+        customer.setActive(false); // Assuming 'active' indicates soft deletion
+        customerRepository.save(customer);
+        log.info("Customer entry soft-deleted for user {}", userId);
+    }
+
+
     @Override
-    public List<UserDTO> getAllCustomers() throws RoleNotFoundException {
+    public List<UserDTO> getAllCustomers() throws InvalidRoleException {
         // Getting the Role from DB
         Role role = roleRepository.findByName(RoleType.CUSTOMER)
-                .orElseThrow(() -> new RoleNotFoundException("Role not found: CUSTOMER"));
+                .orElseThrow(() -> new InvalidRoleException("Role not found: CUSTOMER"));
         return userRepository.findAllByRoles(role)
                 .stream()
                 .map(userMapper::toDTO)
@@ -393,32 +492,56 @@ public class AuthImplementation implements IUserService {
                 .map(userMapper::toDTO)
                 .collect(Collectors.toList());
     }
-
     @Override
+    @Transactional
     public UserDTO updateUser(Long userId, UserDTO userDTO) throws UserNotFoundException,
-            InvalidUserDataException, EmailExistException {
+            InvalidUserDataException, EmailExistException, InvalidRoleException, UsernameExistException {
 
         log.info("Updating user with ID: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
 
-        // Validate email if it's being changed
-        if (!user.getEmail().equals(userDTO.getEmail()) && userRepository.existsByEmail(userDTO.getEmail())) {
-            throw new EmailExistException("Email already exists: " + userDTO.getEmail());
+        // Update Username with Validation
+        if (!user.getUsername().equals(userDTO.getUsername())) {
+            if (userRepository.existsByUsername(userDTO.getUsername())) {
+                throw new UsernameExistException("Username already exists: " + userDTO.getUsername());
+            }
+            user.setUsername(userDTO.getUsername());
         }
-        // Update user fields
+
+        // Update Email with Validation
+        if (!user.getEmail().equals(userDTO.getEmail())) {
+            if (userRepository.existsByEmail(userDTO.getEmail())) {
+                throw new EmailExistException("Email already exists: " + userDTO.getEmail());
+            }
+            user.setEmail(userDTO.getEmail());
+        }
+
+        // Update Other Fields
         user.setFirstName(userDTO.getFirstName());
         user.setLastName(userDTO.getLastName());
-        user.setEmail(userDTO.getEmail());
-        // Update other fields as necessary
+        user.setAddress(userDTO.getAddress());
+
+        // Optionally, update roles if provided
+        if (userDTO.getRoles() != null && !userDTO.getRoles().isEmpty()) {
+            Set<Role> roles = getRolesFromNames(userDTO.getRoles());
+            user.setRoles(roles);
+        }
 
         // Validate updated user data
         Set<ConstraintViolation<User>> violations = validator.validate(user);
         if (!violations.isEmpty()) {
-            throw new InvalidUserDataException("Invalid user data: " + violations);
+            StringBuilder errorMessage = new StringBuilder("Invalid user data: ");
+            for (ConstraintViolation<User> violation : violations) {
+                errorMessage.append(violation.getMessage()).append(", ");
+            }
+            throw new InvalidUserDataException(errorMessage.toString().trim());
         }
+
+        // Save Updated User
         User updatedUser = userRepository.save(user);
         log.info("User updated successfully: {}", updatedUser.getUsername());
+
         return userMapper.toDTO(updatedUser);
     }
 
@@ -470,11 +593,14 @@ public class AuthImplementation implements IUserService {
                     .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
 
             String newPassword = generateResetPassword();
+            log.info("-----------------------------------------------");
+            log.info("new password : {}  for user ID: {}",newPassword, userId);
+            log.info("-----------------------------------------------");
             String encodedPassword = passwordEncoder.encode(newPassword);
             // update password
             user.setPassword(encodedPassword);
             userRepository.save(user);
-            emailService.sendPasswordResetToEmail(user.getFirstName(), user.getUsername(),newPassword,user.getEmail());
+            emailService.sendPasswordResetEmail(user.getFirstName(), user.getUsername(), newPassword, user.getEmail());
             log.info("Password reset successfully for user ID: {}", userId);
         } catch (UserNotFoundException e) {
             log.error("User not found: {}", e.getMessage());
@@ -504,6 +630,5 @@ public class AuthImplementation implements IUserService {
         }
         // Add more password validation rules as needed
     }
-
 
 }

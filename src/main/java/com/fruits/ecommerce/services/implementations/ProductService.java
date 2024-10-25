@@ -1,12 +1,17 @@
 package com.fruits.ecommerce.services.implementations;
 
-import com.fruits.ecommerce.exceptions.products.*;
+import com.fruits.ecommerce.exceptions.exceptionsDomain.products.ImageNotFoundException;
+import com.fruits.ecommerce.exceptions.exceptionsDomain.products.InvalidImageException;
+import com.fruits.ecommerce.exceptions.exceptionsDomain.products.InvalidProductDataException;
+import com.fruits.ecommerce.exceptions.global.ResourceNotFoundException;
 import com.fruits.ecommerce.models.dtos.ProductDTO;
 import com.fruits.ecommerce.models.dtos.ProductImageDTO;
+import com.fruits.ecommerce.models.entities.Category;
 import com.fruits.ecommerce.models.entities.Product;
 import com.fruits.ecommerce.models.entities.ProductImage;
 import com.fruits.ecommerce.models.mappers.ProductImageMapper;
 import com.fruits.ecommerce.models.mappers.ProductMapper;
+import com.fruits.ecommerce.repository.CategoryRepository;
 import com.fruits.ecommerce.repository.ProductImageRepository;
 import com.fruits.ecommerce.repository.ProductRepository;
 import com.fruits.ecommerce.services.Interfaces.IProductService;
@@ -29,12 +34,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class ProductService implements IProductService {
+
+    private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
     private final ProductMapper productMapper;
@@ -43,9 +51,17 @@ public class ProductService implements IProductService {
 
     @Override
     @Transactional
-    public ProductDTO createProduct(ProductDTO productDTO) throws InvalidProductDataException {
+    public ProductDTO createProduct(ProductDTO productDTO) throws InvalidProductDataException,
+            ResourceNotFoundException {
         validateProductData(productDTO);
+
+        // Check for the existence of the category and associate it with the product
+        Category category = categoryRepository.findById(productDTO.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: "
+                        + productDTO.getCategoryId()));
+
         Product product = productMapper.toEntity(productDTO);
+        product.setCategory(category);
         product = productRepository.save(product);
         return productMapper.toDTO(product);
     }
@@ -57,6 +73,9 @@ public class ProductService implements IProductService {
         if (productDTO.getPrice() == null) {
             throw new InvalidProductDataException("Product price is required.");
         }
+        if (productDTO.getCategoryId() == null) {
+            throw new InvalidProductDataException("Category ID is required.");
+        }
     }
 
     @Override
@@ -66,18 +85,18 @@ public class ProductService implements IProductService {
     }
 
     @Override
-    public ProductDTO getProductById(Long id) throws ProductNotFoundException {
+    public ProductDTO getProductById(Long id) throws ResourceNotFoundException {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ProductNotFoundException("Product not found with ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
         return productMapper.toDTO(product);
     }
 
     @Override
     @Transactional
     public List<ProductImageDTO> addImagesToProduct(Long productId, List<MultipartFile> images)
-            throws ProductNotFoundException, InvalidImageException, IOException {
+            throws ResourceNotFoundException, InvalidImageException, IOException {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ProductNotFoundException("Product not found with ID: " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
 
         List<ProductImage> newImages = new ArrayList<>();
 
@@ -141,9 +160,9 @@ public class ProductService implements IProductService {
     @Override
     @Transactional
     public ProductDTO linkImagesToProduct(Long productId, List<Long> imageIds)
-            throws ProductNotFoundException, ImageNotFoundException {
+            throws ResourceNotFoundException, ImageNotFoundException {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ProductNotFoundException("Product not found with ID: " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
 
         List<ProductImage> images = productImageRepository.findAllById(imageIds);
         if (images.size() != imageIds.size()) {
@@ -157,35 +176,55 @@ public class ProductService implements IProductService {
         return productMapper.toDTO(product);
     }
 
-
     @Override
     @Transactional
-    public ProductDTO updateProduct(Long id, ProductDTO productDTO) throws ProductNotFoundException, InvalidProductDataException {
+    public ProductDTO updateProduct(Long id, ProductDTO productDTO) throws ResourceNotFoundException,
+            InvalidProductDataException {
         log.info("Updating product with ID: {}", id);
         Product existingProduct = productRepository.findById(id)
-                .orElseThrow(() -> new ProductNotFoundException("Product not found with ID: " + id));
-
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
         validateProductData(productDTO);
 
-        // Update properties
+        // Update the category if it has been changed
+        if (productDTO.getCategoryId() != null) {
+            Category newCategory = categoryRepository.findById(productDTO.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: "
+                            + productDTO.getCategoryId()));
+            existingProduct.setCategory(newCategory);
+        } else {
+            // If no new category is provided, retain the current category (even if it is null)
+            log.warn("No category provided for product update. Keeping existing category.");
+        }
+        // Update other attributes
         existingProduct.setName(productDTO.getName());
         existingProduct.setDescription(productDTO.getDescription());
         existingProduct.setPrice(productDTO.getPrice());
-        //More properties can be added as needed.
 
+        // Additional attributes can be added as needed
         Product updatedProduct = productRepository.save(existingProduct);
         log.info("Product updated successfully. ID: {}", updatedProduct.getId());
-        return productMapper.toDTO(updatedProduct);
+
+        // Use DTO mapper while handling the case of a null category
+        ProductDTO updatedProductDTO = productMapper.toDTO(updatedProduct);
+        if (updatedProduct.getCategory() != null) {
+            updatedProductDTO.setCategoryId(updatedProduct.getCategory().getId());
+            updatedProductDTO.setCategoryName(updatedProduct.getCategory().getName());
+        } else {
+            updatedProductDTO.setCategoryId(null);
+            updatedProductDTO.setCategoryName(null);
+        }
+
+        return updatedProductDTO;
     }
 
     @Override
     @Transactional
-    public void deleteProduct(Long id) throws ProductNotFoundException {
+    public void deleteProduct(Long id) throws ResourceNotFoundException {
         log.info("Deleting product with ID: {}", id);
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ProductNotFoundException("Product not found with ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
 
-// Delete images associated with the product
+        // Delete images associated with the product
         List<ProductImage> images = productImageRepository.findByProductId(id);
         for (ProductImage image : images) {
             try {
@@ -222,6 +261,25 @@ public class ProductService implements IProductService {
             log.error("Failed to delete image file", e);
             throw new RuntimeException("Failed to delete image file", e);
         }
+    }
+
+    @Override
+    public List<ProductDTO> getProductsByCategory(Long categoryId) throws ResourceNotFoundException {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + categoryId));
+
+        List<Product> products = productRepository.findByCategory(category);
+        return products.stream()
+                .map(productMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProductDTO> searchProduct(String searchValue) {
+        List<Product> products = productRepository.findByNameContainingIgnoreCase(searchValue);
+        return products.stream()
+                .map(productMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
 

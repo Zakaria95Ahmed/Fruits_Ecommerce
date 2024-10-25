@@ -92,19 +92,6 @@
             <artifactId>lombok-mapstruct-binding</artifactId>
             <version>0.2.0</version>
         </dependency>
-        <!-- Lombok -->
-
-
-        <!-- MapStruct -->
-
-
-        <!-- Lombok & MapStruct for data binding -->
-        <!--        <dependency>-->
-        <!--            <groupId>org.projectlombok</groupId>-->
-        <!--            <artifactId>lombok-mapstruct-binding</artifactId>-->
-        <!--            <version>0.2.0</version>-->
-        <!--        </dependency>-->
-
         <!-- Spring Boot Starter Test -->
         <!-- Testing dependencies -->
         <dependency>
@@ -303,6 +290,15 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.3.2</version>
+                <configuration>
+                    <show>private</show>
+                    <nohelp>true</nohelp>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -1,6 +1,6 @@
 package com.fruits.ecommerce.services.Utils;
 
-import com.fruits.ecommerce.exceptions.products.InvalidImageException;
+import com.fruits.ecommerce.exceptions.exceptionsDomain.products.InvalidImageException;
 import com.fruits.ecommerce.models.entities.ProductImage;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;

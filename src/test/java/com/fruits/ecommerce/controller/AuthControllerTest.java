@@ -4,7 +4,7 @@ import com.fruits.ecommerce.models.dtos.AuthResponseDTO;
 import com.fruits.ecommerce.models.dtos.LoginRequestDTO;
 import com.fruits.ecommerce.models.dtos.UserDTO;
 import com.fruits.ecommerce.models.enums.RoleType;
-import com.fruits.ecommerce.services.Interfaces.IUserService;
+import com.fruits.ecommerce.services.Interfaces.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -23,7 +23,7 @@ public class AuthControllerTest {
     private AuthController authController;
 
     @Mock
-    private IUserService authService;
+    private UserService authService;
 
     @BeforeEach
     void setUp() {
@@ -57,7 +57,6 @@ public class AuthControllerTest {
         LoginRequestDTO loginRequest = new LoginRequestDTO();
         loginRequest.setUsername("testuser");
         loginRequest.setPassword("password");
-
         AuthResponseDTO authResponse = new AuthResponseDTO();
         authResponse.setToken("jwt-token");
         authResponse.setUser(new UserDTO());
@@ -72,6 +71,12 @@ public class AuthControllerTest {
         assertNotNull(response.getBody());
         assertEquals("jwt-token", response.getBody().getToken());
     }
+
+
+
+
+
+
 
     // اختبارات الميثود lockUser
     @Test

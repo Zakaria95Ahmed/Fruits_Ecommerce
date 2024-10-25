@@ -28,6 +28,8 @@ public class ProductDTO {
     private BigDecimal price;
     private String description;
     private List<String> imageUrls  = new ArrayList<>();
+    private Long categoryId;
+    private String categoryName;
     // Timing fields
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

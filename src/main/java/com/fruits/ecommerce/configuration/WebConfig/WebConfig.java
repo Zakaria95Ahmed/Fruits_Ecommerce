@@ -1,6 +1,6 @@
 package com.fruits.ecommerce.configuration.WebConfig;
 
-import com.fruits.ecommerce.exceptions.ExceptionsDomain.InvalidRoleException;
+import com.fruits.ecommerce.exceptions.exceptionsDomain.users.InvalidRoleException;
 import com.fruits.ecommerce.models.enums.RoleType;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;

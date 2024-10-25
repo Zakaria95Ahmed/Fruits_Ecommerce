@@ -9,7 +9,8 @@ import java.util.List;
 @Getter
 @Setter
 public class CartDTO {
-    private Long id,customerId;
-    private BigDecimal shippingCost,discount;
+    private Long id, customerId;
+    private BigDecimal shippingCost;
+    private BigDecimal discount;
     private List<CartItemDTO> items;
 }
